@@ -7,7 +7,8 @@ var moment = require('moment');
 
 var path = require('path');
 var fileName = path.basename(__filename, '.js'); // gives the filename without the .js extension
-var log = require('./../lib/debug-extension')('common:models:'+fileName);
+//var log = require('./../lib/debug-extension')('common:models:'+fileName);
+const logger = require('sp-json-logger');
 var excel = require('excel-stream');
 
 var excelRows = [];
@@ -16,9 +17,11 @@ var orders = [];
 module.exports = function(Container) {
 
   Container.beforeRemote('upload', function(ctx, unused, next) {
-    log.trace('Container > beforeRemote > upload');
+    //log.trace('Container > beforeRemote > upload');
+    logger.trace({log: {message: 'Container > beforeRemote > upload' }});
     var userId = ctx.req.params.container; // TODO: validate userId basedon accessToken
-    log.debug('Container > beforeRemote > upload > userId', userId);
+    //log.debug('Container > beforeRemote > upload > userId', userId);
+    logger.debug({log: {message: 'Container > beforeRemote > upload > userId', userId: userId }});
     Container.getContainer(userId, function(err1, container1){
       if (err1) {
         if (err1.code === 'ENOENT') {
@@ -49,10 +52,12 @@ module.exports = function(Container) {
   });
 
   Container.afterRemote('upload', function(ctx, unused, next) {
-    log.debug('Container > afterRemote > upload');
+    //log.debug('Container > afterRemote > upload');
+    logger.debug({log: {message: 'Container > afterRemote > upload' }});
     var files = ctx.result.result.files.file;
-    log.debug('Container > afterRemote > upload',
-      ' > FILE(S) UPLOADED: %j', files);
+    // log.debug('Container > afterRemote > upload',
+    //   ' > FILE(S) UPLOADED: %j', files);
+    logger.debug({log: {message: 'Container > afterRemote > upload > FILE(S) UPLOADED', files: files }}); // Does this match above commented log?
 
     // ASSUMPTION #1 we only get one file at a time
     // ASSUMPTION #2 user only uploads a valid CSV file
@@ -101,7 +106,8 @@ module.exports = function(Container) {
                 });
 
                 for(var i = orders.length - 1 ; i >= 0 ; i--){
-                  console.log(orders[i].storeName +" : "+ orders[i].items.length);
+                  //console.log(orders[i].storeName +" : "+ orders[i].items.length);
+                  logger.debug({log: {message: `orders[i].storeName: ${orders[i].items.length}` }});
                   if(orders[i].items.length == 0){
                     var index = orders.indexOf(orders[i]);
                     if (index > -1) {
@@ -130,22 +136,28 @@ module.exports = function(Container) {
                             next(err);
                           }
                           else {
-                            log.debug('created StockOrderLineitemModels:', results.length);
+                            //log.debug('created StockOrderLineitemModels:', results.length);
+                            logger.debug({log: {message: `created StockOrderLineitemModels: ${results.length}` }});
 
-                            log.debug('#3 submit a job to the worker infrastructure');
+                            //log.debug('#3 submit a job to the worker infrastructure');
+                            logger.debug({log: {message: '#3 submit a job to the worker infrastructure' }});
                             var UserModel = Container.app.models.UserModel;
                             return UserModel.findById(reportModelInstance.userModelToReportModelId)
                               .then(function (userModelInstance) {
-                                log.trace('userModelInstance', userModelInstance);
+                                //log.trace('userModelInstance', userModelInstance);
+                                logger.tag('userModelInstance').debug({log: {userModelInstance: userModelInstance }});
 
-                                log.debug('(1) generate a token for the worker to use on the currentUser\'s behalf');
+                                //log.debug('(1) generate a token for the worker to use on the currentUser\'s behalf');
+                                logger.debug({log: {message: '(1) generate a token for the worker to use on the currentUser\'s behalf' }});
                                 return userModelInstance.createAccessTokenAsync(1209600)// can't be empty ... time to live (in seconds) 1209600 is 2 weeks (default of loopback)
                                   .then(function (newAccessToken) {
-                                    log.debug('(2) fetch the report, store and store-config');
+                                    //log.debug('(2) fetch the report, store and store-config');
+                                    logger.debug({log: {message: '(2) fetch the report, store and store-config' }});
                                     var ReportModel = Container.app.models.ReportModel;
                                     return ReportModel.getAllRelevantModelInstancesForReportModel(reportModelInstance.id)
                                       .spread(function (reportModelInstance, storeModelInstance, storeConfigInstance) {
-                                        log.debug('(3) extract domainPrefix from store-config\'s posUrl');
+                                        //log.debug('(3) extract domainPrefix from store-config\'s posUrl');
+                                        logger.debug({log: {message: '(3) extract domainPrefix from store-config\'s posUrl' }});
                                         var posUrl = storeConfigInstance.posUrl;
                                         var regexp = /^https?:\/\/(.*)\.vendhq\.com$/i;
                                         var matches = posUrl.match(regexp);
@@ -161,7 +173,8 @@ module.exports = function(Container) {
 
                                         return ReportModel.sendPayload(reportModelInstance, options, next)
                                           .then(function (updatedReportModelInstance) {
-                                            log.trace('updatedReportModelInstance:', updatedReportModelInstance);
+                                            //log.trace('updatedReportModelInstance:', updatedReportModelInstance);
+                                            logger.tag('updatedReportModelInstance').debug({log: {updatedReportModelInstance: updatedReportModelInstance }});
                                             //next();
                                           });
                                       });
@@ -172,13 +185,15 @@ module.exports = function(Container) {
                       })
                       .catch(function (error) {
                         if (error instanceof Error) {
-                          log.error('Container > afterRemote > upload > end_parsed',
-                            '\n', error.name + ':', error.message,
-                            '\n', error.stack);
+                          // log.error('Container > afterRemote > upload > end_parsed',
+                          //   '\n', error.name + ':', error.message,
+                          //   '\n', error.stack);
+                          logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
                         }
                         else {
-                          log.error('Container > afterRemote > upload > end_parsed',
-                            '\n', error);
+                          // log.error('Container > afterRemote > upload > end_parsed',
+                          //   '\n', error);
+                          logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
                         }
                         next(error)
                       });
@@ -237,9 +252,11 @@ module.exports = function(Container) {
                             next(err);
                           }
                           else {
-                            log.debug('created StockOrderLineitemModels:', results.length);
+                            //log.debug('created StockOrderLineitemModels:', results.length);
+                            logger.tag('StockOrderLineitemModels').debug({log: {message: `created StockOrderLineitemModels: ${results.length}` }});
 
-                            log.debug('#3 submit a job to the worker infrastructure');
+                            //log.debug('#3 submit a job to the worker infrastructure');
+                            logger.debug({log: {message: '#3 submit a job to the worker infrastructure' }});
                             var UserModel = Container.app.models.UserModel;
                             return UserModel.findById(reportModelInstance.userModelToReportModelId)
                               .then(function (userModelInstance) {
@@ -279,13 +296,15 @@ module.exports = function(Container) {
                       })
                       .catch(function (error) {
                         if (error instanceof Error) {
-                          log.error('Container > afterRemote > upload > end_parsed',
-                            '\n', error.name + ':', error.message,
-                            '\n', error.stack);
+                          // log.error('Container > afterRemote > upload > end_parsed',
+                          //   '\n', error.name + ':', error.message,
+                          //   '\n', error.stack);
+                          logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
                         }
                         else {
-                          log.error('Container > afterRemote > upload > end_parsed',
-                            '\n', error);
+                          // log.error('Container > afterRemote > upload > end_parsed',
+                          //   '\n', error);
+                          logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
                         }
                         next(error)
                       });
@@ -318,14 +337,18 @@ module.exports = function(Container) {
 
       //end_parsed will be emitted once parsing finished
       converter.on('end_parsed', function (arrayOfCsvRowsAsObjects) {
-        log.debug('parsed csv rows:', arrayOfCsvRowsAsObjects.length);
+        //log.debug('parsed csv rows:', arrayOfCsvRowsAsObjects.length);
+        logger.debug({log: {message: `parsed csv rows: ${arrayOfCsvRowsAsObjects.length}` }});
 
-        log.debug('#1 create a new Reportmodel');
+        //log.debug('#1 create a new Reportmodel');
+        logger.debug({log: {message: '#1 create a new Reportmodel' }});
         createReportModelForCsv(item.name, Container, next)
           .then(function(reportModelInstance){
-            log.trace('reportModelInstance:', reportModelInstance);
+            //log.trace('reportModelInstance:', reportModelInstance);
+            logger.tag('reportModelInstance').debug({log: {reportModelInstance: reportModelInstance }});
 
-            log.debug('#2 create lineitems from CSV row data and associate them with the new Reportmodel and its user');
+            //log.debug('#2 create lineitems from CSV row data and associate them with the new Reportmodel and its user');
+            logger.debug({log: {message: '#2 create lineitems from CSV row data and associate them with the new Reportmodel and its user' }});
             _.each(arrayOfCsvRowsAsObjects, function(csvRowAsObject){
               csvRowAsObject.reportId = reportModelInstance.id;
               csvRowAsObject.userId = reportModelInstance.userModelToReportModelId;
@@ -338,9 +361,11 @@ module.exports = function(Container) {
                 next(err);
               }
               else {
-                log.debug('created StockOrderLineitemModels:', results.length);
+                //log.debug('created StockOrderLineitemModels:', results.length);
+                logger.tag('StockOrderLineitemModels').debug({log: {message: `created StockOrderLineitemModels: ${results.length}` }});
 
-                log.debug('#3 submit a job to the worker infrastructure');
+                //log.debug('#3 submit a job to the worker infrastructure');
+                logger.debug({log: {message: '#3 submit a job to the worker infrastructure' }});
                 var UserModel = Container.app.models.UserModel;
                 UserModel.findById(reportModelInstance.userModelToReportModelId)
                   .then(function(userModelInstance){
@@ -380,13 +405,15 @@ module.exports = function(Container) {
           })
           .catch(function(error){
             if (error instanceof Error) {
-              log.error('Container > afterRemote > upload > end_parsed',
-                '\n', error.name + ':', error.message,
-                '\n', error.stack);
+              // log.error('Container > afterRemote > upload > end_parsed',
+              //   '\n', error.name + ':', error.message,
+              //   '\n', error.stack);
+              logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
             }
             else {
-              log.error('Container > afterRemote > upload > end_parsed',
-                '\n', error);
+              // log.error('Container > afterRemote > upload > end_parsed',
+              //   '\n', error);
+              logger.error({err: error, message: 'Container > afterRemote > upload > end_parsed' });
             }
             next(error);
           });
@@ -405,26 +432,31 @@ module.exports = function(Container) {
       // after: [ 41st_Gift_Shop, CSC, 114340, WeeklyOrder.CSV ]
 
       if (!data || data.length < 2 || !data[0] || !data[1]) {
-        log.error('Container > createReportModel', 'Invalid filename: ' + filename);
+        //log.error('Container > createReportModel', 'Invalid filename: ' + filename);
+        logger.error({ message: `Container > createReportModel, Invalid filename: ${filename}` });
         next(new Error('Invalid filename: ' + filename));
       }
       else {
         var storeName = data[0];
         storeName = storeName.replace(/_/g, '.'); // . is treated as regex when
-        log.debug('regex with storeName', storeName);
+        //log.debug('regex with storeName', storeName);
+        logger.debug({log: {message:`regex with storeName: ${storeName}` }});
 
         var supplierName = data[1];
         supplierName = supplierName.replace(/_/g, '.'); // . is treated as regex when
-        log.debug('regex with supplierName', supplierName);
+        //log.debug('regex with supplierName', supplierName);
+        logger.debug({log: {message: `regex with supplierName: ${supplierName}` }});
         supplierName = '^' + supplierName + '$';
-        log.debug('modified regex with supplierName', supplierName);
+        //log.debug('modified regex with supplierName', supplierName);
+        logger.debug({log: {message: `modified regex with supplierName: ${supplierName}` }});
 
         // TODO: current user should only be able to search his/her own stores and suppliers, not all of them!
 
         var StoreModel = Container.app.models.StoreModel;
         return StoreModel.findOne({where: {name: {like: storeName}}})
           .then(function (storeModelInstance) {
-            log.trace('storeModelInstance', storeModelInstance);
+            //log.trace('storeModelInstance', storeModelInstance);
+            logger.tag('storeModelInstance').debug({log: {storeModelInstance: storeModelInstance }});
             if (storeModelInstance) {
               var SupplierModel = Container.app.models.SupplierModel;
               return SupplierModel.findOne({
@@ -436,7 +468,8 @@ module.exports = function(Container) {
                   }
                 })
                 .then(function (supplierModelInstance) {
-                  log.trace('supplierModelInstance', supplierModelInstance);
+                  //log.trace('supplierModelInstance', supplierModelInstance);
+                  logger.tag('supplierModelInstance').debug({log: {supplierModelInstance: supplierModelInstance }});
                   if (supplierModelInstance) {
                     //return Promise.resolve([storeModelInstance,supplierModelInstance]);
                     var ReportModel = Container.app.models.ReportModel;
@@ -466,7 +499,8 @@ module.exports = function(Container) {
       }
     }
     catch (error) {
-      log.error('Container > createReportModel', '\n', error);
+      //log.error('Container > createReportModel', '\n', error);
+      logger.error({err: error, message: 'Container > createReportModel' });
       next(error);
     }
   };
@@ -487,18 +521,21 @@ module.exports = function(Container) {
        */
       //var storeName = data[0];
       singleOrder.storeName = singleOrder.storeName.replace(/_/g, '.'); // . is treated as regex when
-      log.debug('regex with storeName', singleOrder.storeName);
+      //log.debug('regex with storeName', singleOrder.storeName);
+      logger.debug({log: {message: `regex with storeName: ${singleOrder.storeName}` }});
 
       //var supplierName = data[1];
       singleOrder.supplierName = singleOrder.supplierName.replace(/_/g, '.'); // . is treated as regex when
-      log.debug('regex with supplierName', singleOrder.supplierName);
+      //log.debug('regex with supplierName', singleOrder.supplierName);
+      logger.debug({log: {message: `regex with supplierName: ${singleOrder.supplierName}` }});
 
       // TODO: current user should only be able to search his/her own stores and suppliers, not all of them!
 
       var StoreModel = Container.app.models.StoreModel;
       return StoreModel.findOne({where: {name: {like: singleOrder.storeName}}})
         .then(function (storeModelInstance) {
-          log.trace('storeModelInstance', storeModelInstance);
+          //log.trace('storeModelInstance', storeModelInstance);
+          logger.tag('storeModelInstance').debug({log: {storeModelInstance: storeModelInstance }});
           if (storeModelInstance) {
             var SupplierModel = Container.app.models.SupplierModel;
             return SupplierModel.findOne({
@@ -510,7 +547,8 @@ module.exports = function(Container) {
                 }
               })
               .then(function (supplierModelInstance) {
-                log.trace('supplierModelInstance', supplierModelInstance);
+                //log.trace('supplierModelInstance', supplierModelInstance);
+                logger.tag('supplierModelInstance').debug({log: {supplierModelInstance: supplierModelInstance }});
                 if (supplierModelInstance) {
                   //return Promise.resolve([storeModelInstance,supplierModelInstance]);
                   var ReportModel = Container.app.models.ReportModel;
@@ -540,7 +578,8 @@ module.exports = function(Container) {
 
     }
     catch (error) {
-      log.error('Container > createReportModel', '\n', error);
+      //log.error('Container > createReportModel', '\n', error);
+      logger.error({err: error, message: 'Container > createReportModel' });
       next(error);
     }
   };
@@ -560,12 +599,14 @@ module.exports = function(Container) {
        */
       //var storeName = data[0];
       singleOrder.storeName = singleOrder.storeName.replace(/_/g, '.'); // . is treated as regex when
-      log.debug('regex with storeName', singleOrder.storeName);
+      //log.debug('regex with storeName', singleOrder.storeName);
+      logger.debug({log: {message: `regex with storeName: ${singleOrder.storeName}` }});
 
       var StoreModel = Container.app.models.StoreModel;
       return StoreModel.findOne({where: {name: {like: singleOrder.storeName}}})
         .then(function (storeModelInstance) {
-          log.trace('storeModelInstance', storeModelInstance);
+          //log.trace('storeModelInstance', storeModelInstance);
+          logger.tag('storeModelInstance').debug({log: {storeModelInstance: storeModelInstance }});
           if (storeModelInstance) {
             var ReportModel = Container.app.models.ReportModel;
             return ReportModel.create({
@@ -588,7 +629,8 @@ module.exports = function(Container) {
 
     }
     catch (error) {
-      log.error('Container > createReportModel', '\n', error);
+      //log.error('Container > createReportModel', '\n', error);
+      logger.error({err: error, message: 'Container > createReportModel' });
       next(error);
     }
   };
