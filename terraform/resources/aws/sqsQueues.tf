@@ -1,17 +1,6 @@
-variable "aws_access_key" {}
-variable "aws_secret_key" {}
 variable "Q" {}
 variable "DLQ" {}
-
-provider "aws" {
-  # WARNING: FIFO queues are only available in two regions
-  #          currently: us-east-2 and us-west-2
-
-  region     = "us-west-1"
-  access_key = "${var.aws_access_key}"
-  secret_key = "${var.aws_secret_key}"
-
-}
+variable "aws_region" {}
 
 resource "aws_sqs_queue" "warehouse_workers_DLQ" {
   name                        = "${var.DLQ}"
@@ -37,6 +26,10 @@ resource "aws_sqs_queue" "warehouse_workers_Q" {
 
   provisioner "local-exec" {
       command = "echo 'AWS_SQS_URL=${self.id}' >> ../.env && echo 'AWS_SQS_URL=${self.id}' >> ../worker.env"
+  }
+
+  provisioner "local-exec" {
+      command = "echo 'AWS_SQS_REGION=${var.aws_region}' >> ../.env && echo 'AWS_SQS_REGION=${var.aws_region}' >> ../worker.env"
   }
 }
 
