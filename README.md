@@ -25,11 +25,11 @@ cp worker.env.example worker.env
 # 4. then fill in the values for env variables
 # into `.env` and `worker.env` files
 
-# 5. cd into **$PROJECT_ROOT/terraform/** directory.
+# 5. cd into $PROJECT_ROOT/terraform/ directory.
 cd terraform
 
-# 6. Create **terraform.tfvars** under **$PROJECT_ROOT/terraform/** directory. (Use **example.tfvars.file** as template)
-# Below is **example.tfvars.file**
+# 6. Create terraform.tfvars under $PROJECT_ROOT/terraform/ directory. (Use $PROJECT_ROOT/terraform/example.tfvars.file as template.)
+# Below is example.tfvars.file
     ```
         # Must have the appriopriate IAM permissions to manipulate SQS
         aws_iam_access_key      = ""
@@ -37,9 +37,9 @@ cd terraform
         Q                       = "terraform_warehouse_workers_Q"   # use whatever name you find useful
         DLQ                     = "terraform_warehouse_workers_DLQ" # use whatever name you find useful
     ```
-# Note: File name should be **terraform.tfvars** so that terraform can autoload this file.
+# Note: File name should be terraform.tfvars so that terraform can autoload this file.
 
-# 7. Run these commands under **$PROJECT_ROOT/terraform/** directory:
+# 7. Run these commands under $PROJECT_ROOT/terraform/ directory:
     ```
         1. docker-compose run terraform init
         2. docker-compose run terraform get    // used to download and update modules mentioned in the root module (main.tf).
@@ -47,8 +47,8 @@ cd terraform
         4. docker-compose run terraform apply
         5. docker-compose run terraform destroy // to destroy your infrastructure!
     ```
-# Note: This is for local development setup. Once terraform creates queues, appropriate **AWS_SQS_URL** and **AWS_SQS_REGION** will be added to .env and worker.env. 
-# Tested with **Terraform v0.10.8** as of this commit.
+# Note: This is for local development setup. Once terraform creates queues, appropriate AWS_SQS_URL and AWS_SQS_REGION will be added to .env and worker.env. 
+# Tested with Terraform v0.10.8 as of this commit.
 
 # 8. Open file `/etc/hosts` and add following entry
 #    127.0.0.1 lb
