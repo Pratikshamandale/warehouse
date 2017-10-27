@@ -14,7 +14,8 @@ cp worker.env.example worker.env
 
 4. cd into **$PROJECT_ROOT/terraform/** directory.
 
-5. Create **terraform.tfvars** under **$PROJECT_ROOT/terraform/** directory. (Use **example.tfvars.file** as template)
+5. Create **terraform.tfvars** under **$PROJECT_ROOT/terraform/** directory. (Use **$PROJECT_ROOT/terraform/example.tfvars.file** as template.)
+    Below is example.tfvars.file
     ```
         # Must have the appriopriate IAM permissions to manipulate SQS
         aws_iam_access_key      = ""
