@@ -27,8 +27,8 @@ COPY . /apps/warehouse
 RUN ../node_modules/bower/bin/bower --allow-root install
 ENV SCHEME=http
 # Disable the debug logs for warehouse
-#ENV DEBUG=shoppinpal:*,boot:*,common:models:*,server:*
-HEALTHCHECK --interval=1m --timeout=3s --start-period=1m CMD curl -f http://localhost:3000/api/StoreModels || exit 1
+ENV DEBUG=shoppinpal:*,boot:*,common:models:*,server:*
+HEALTHCHECK --interval=1m --timeout=3s --start-period=1m CMD curl -f http://localhost:3000 || exit 1
 ENTRYPOINT [ "./docker-entrypoint.sh" ]
 EXPOSE 3000
-CMD [ "node","server/server.js" ]
+CMD [ "sh", "-c", "node server/server.js > /var/log/warehouse/node.log 2>&1" ]

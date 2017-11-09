@@ -32,7 +32,7 @@ services:
       NODE_ENV: staging
       MONGOLAB_URI: mongodb://db:27017/warehouse-local
     env_file: .env
-    command: node server/server.js
+    command: [ "sh", "-c", "node server/server.js > /var/log/warehouse/node.log 2>&1" ]
     volumes:
       - ./client/app/images:/apps/warehouse/client/app/images
       - ./client/app/scripts:/apps/warehouse/client/app/scripts
@@ -44,10 +44,11 @@ services:
       - ./package.json:/apps/warehouse/package.json
       - ./npm-shrinkwrap.json:/apps/warehouse/npm-shrinkwrap.json
       - ./Gruntfile.js:/apps/warehouse/Gruntfile.js
+      - /var/log/warehouse:/var/log/warehouse
     depends_on:
       - db
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://web:3000/api/StoreModels"]
+      test: ["CMD", "curl", "-f", "http://web:3000"]
       interval: 15s
       timeout: 10s
       retries: 3
@@ -71,34 +72,7 @@ services:
     depends_on:
       - web
       - db
-  worker:
-    build:
-      context: ./warehouse-workers
-    working_dir: /apps/workers
-    command: node sqsWorker.js
-    volumes:
-      - ./warehouse-workers:/apps/workers
-    restart: always
-    env_file: worker.env
-    depends_on:
-      - memcache
-  worker2:
-    build:
-      context: ./warehouse-workers/workers-v2
-    working_dir: /apps/workers
-    command: node sqsWorker.js
-    volumes:
-      - ./warehouse-workers/workers-v2:/apps/workers/workers-v2
-      - ./warehouse-workers/jobs:/apps/workers/jobs
-      - ./warehouse-workers/sqsWorker.js:/apps/workers/sqsWorker.js
-      - ./warehouse-workers/config:/apps/workers/config
-    restart: always
-    env_file: worker2.env
-    depends_on:
-      - memcache
   db:
     image: mongo:3.2
     ports:
       - "27020:27017"
-  memcache:
-    image: memcached:latest
