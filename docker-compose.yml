@@ -32,7 +32,7 @@ services:
       NODE_ENV: staging
       MONGOLAB_URI: mongodb://db:27017/warehouse-local
     env_file: .env
-    command: [ "sh", "-c", "node server/server.js > /var/log/warehouse/node.log 2>&1" ]
+    command: [ "sh", "-c", "node server/server.js > /var/log/warehouse/web.log 2>&1" ]
     volumes:
       - ./client/app/images:/apps/warehouse/client/app/images
       - ./client/app/scripts:/apps/warehouse/client/app/scripts
